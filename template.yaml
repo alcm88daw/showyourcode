@@ -1,0 +1,238 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: TestsApp - Infraestructura completa
+
+Globals:
+  Function:
+    Runtime: nodejs20.x
+    Timeout: 15
+    MemorySize: 256
+    Environment:
+      Variables:
+        TABLE_NAME: !Ref MainTable
+        USER_POOL_ID: !Ref UserPool
+
+# ─── Parámetros ────────────────────────────────────────────────────────────────
+Parameters:
+  Stage:
+    Type: String
+    Default: dev
+    AllowedValues: [dev, prod]
+
+# ─── Recursos ──────────────────────────────────────────────────────────────────
+Resources:
+
+  # Cognito
+  UserPool:
+    Type: AWS::Cognito::UserPool
+    Properties:
+      UserPoolName: !Sub testsapp-users-${Stage}
+      AutoVerifiedAttributes: [email]
+      Schema:
+        - Name: role
+          AttributeDataType: String
+          Mutable: true
+
+  UserPoolClient:
+    Type: AWS::Cognito::UserPoolClient
+    Properties:
+      ClientName: !Sub testsapp-client-${Stage}
+      UserPoolId: !Ref UserPool
+      GenerateSecret: false
+      ExplicitAuthFlows:
+        - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_REFRESH_TOKEN_AUTH
+
+  # DynamoDB
+  MainTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub testsapp-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: PK
+          AttributeType: S
+        - AttributeName: SK
+          AttributeType: S
+      KeySchema:
+        - AttributeName: PK
+          KeyType: HASH
+        - AttributeName: SK
+          KeyType: RANGE
+
+  # API Gateway
+  Api:
+    Type: AWS::Serverless::Api
+    Properties:
+      Name: !Sub testsapp-api-${Stage}
+      StageName: !Ref Stage
+      Auth:
+        DefaultAuthorizer: CognitoAuth
+        Authorizers:
+          CognitoAuth:
+            UserPoolArn: !GetAtt UserPool.Arn
+
+  # Lambda: Auth (Cognito triggers)
+  AuthFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda-auth/
+      Handler: index.handler
+      Events:
+        PostConfirmation:
+          Type: Cognito
+          Properties:
+            UserPool: !Ref UserPool
+            Trigger: PostConfirmation
+
+  # Lambda: UTs
+  UtsFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda-uts/
+      Handler: index.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        GetUts:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /uts
+            Method: GET
+        CreateUt:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /uts
+            Method: POST
+        UpdateUt:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /uts/{id}
+            Method: PUT
+        DeleteUt:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /uts/{id}
+            Method: DELETE
+
+  # Lambda: Preguntas
+  PreguntasFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda-preguntas/
+      Handler: index.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        GetPreguntas:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /preguntas
+            Method: GET
+        CreatePregunta:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /preguntas
+            Method: POST
+        UpdatePregunta:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /preguntas/{id}
+            Method: PUT
+        DeletePregunta:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /preguntas/{id}
+            Method: DELETE
+
+  # Lambda: Resultados
+  ResultadosFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda-resultados/
+      Handler: index.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        SaveResultado:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /resultados
+            Method: POST
+        GetResultados:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /resultados
+            Method: GET
+
+  # Lambda: Ranking
+  RankingFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda-ranking/
+      Handler: index.handler
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref MainTable
+      Events:
+        GetRanking:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /ranking
+            Method: GET
+
+  # Lambda: Accesibilidad (Polly + Translate)
+  AccesibilidadFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: backend/lambda-accesibilidad/
+      Handler: index.handler
+      Policies:
+        - Statement:
+            - Effect: Allow
+              Action:
+                - polly:SynthesizeSpeech
+                - translate:TranslateText
+              Resource: '*'
+      Events:
+        Sintetizar:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /accesibilidad/tts
+            Method: POST
+        Traducir:
+          Type: Api
+          Properties:
+            RestApiId: !Ref Api
+            Path: /accesibilidad/traducir
+            Method: POST
+
+# ─── Outputs ───────────────────────────────────────────────────────────────────
+Outputs:
+  ApiUrl:
+    Description: URL de la API
+    Value: !Sub https://${Api}.execute-api.${AWS::Region}.amazonaws.com/${Stage}
+  UserPoolId:
+    Description: Cognito User Pool ID
+    Value: !Ref UserPool
+  UserPoolClientId:
+    Description: Cognito App Client ID
+    Value: !Ref UserPoolClient
+  TableName:
+    Description: Nombre de la tabla DynamoDB
+    Value: !Ref MainTable

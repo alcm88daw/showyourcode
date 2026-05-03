@@ -1,0 +1,10 @@
+{
+  "name": "lambda-uts",
+  "version": "1.0.0",
+  "description": "CRUD unidades de trabajo",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}

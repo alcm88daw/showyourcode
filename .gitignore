@@ -19,13 +19,21 @@ samconfig.toml
 # Build y despliegue
 dist/
 frontend/build/
+frontend/dist/
 frontend/.cache/
 backend/**/*.zip
 
 # Sistema operativo
 .DS_Store
+.env.production
 Thumbs.db
 
 # IDEs
 .vscode/
 *.log
+
+#SAM
+.aws-sam/
+
+#Tests
+coverage/

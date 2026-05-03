@@ -1,0 +1,10 @@
+{
+  "name": "lambda-accesibilidad",
+  "version": "1.0.0",
+  "description": "Text-to-speech con Polly y traducción con Translate",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-polly": "^3.0.0",
+    "@aws-sdk/client-translate": "^3.0.0"
+  }
+}

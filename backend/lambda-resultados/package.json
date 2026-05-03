@@ -1,0 +1,10 @@
+{
+  "name": "lambda-resultados",
+  "version": "1.0.0",
+  "description": "Guardar y consultar resultados de tests",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}

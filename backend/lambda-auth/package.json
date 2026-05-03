@@ -1,0 +1,6 @@
+{
+  "name": "lambda-auth",
+  "version": "1.0.0",
+  "description": "Cognito triggers y autenticación",
+  "main": "index.js"
+}
