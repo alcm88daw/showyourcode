@@ -2,7 +2,7 @@ const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
 const { DynamoDBDocumentClient, ScanCommand } = require('@aws-sdk/lib-dynamodb')
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient())
-const TABLE = process.env.TABLE_NAME
+const TABLE = process.env.RESULTADOS_TABLE
 
 const response = (statusCode, body) => ({
   statusCode,
@@ -14,18 +14,23 @@ exports.handler = async (event) => {
   try {
     const { Items } = await db.send(new ScanCommand({
       TableName: TABLE,
-      FilterExpression: 'begins_with(PK, :prefix) AND attribute_exists(nota)',
-      ExpressionAttributeValues: { ':prefix': 'RESULTADO#' },
+      FilterExpression: 'attribute_exists(nota)',
     }))
 
     const porAlumno = {}
     for (const r of Items) {
-      if (!porAlumno[r.alumnoId]) porAlumno[r.alumnoId] = { alumnoId: r.alumnoId, nombre: r.nombre || r.alumnoId, notas: [] }
-      if (r.nota !== null) porAlumno[r.alumnoId].notas.push(r.nota)
+      if (!porAlumno[r.alumno_id]) {
+        porAlumno[r.alumno_id] = { alumno_id: r.alumno_id, grupo: r.grupo || '', notas: [] }
+      }
+      if (r.nota !== null) porAlumno[r.alumno_id].notas.push(r.nota)
     }
 
     const ranking = Object.values(porAlumno)
-      .map((a) => ({ ...a, media: a.notas.reduce((s, n) => s + n, 0) / (a.notas.length || 1) }))
+      .map((a) => ({
+        ...a,
+        media: a.notas.reduce((s, n) => s + n, 0) / (a.notas.length || 1),
+        intentos: a.notas.length,
+      }))
       .sort((a, b) => b.media - a.media)
 
     return response(200, ranking)

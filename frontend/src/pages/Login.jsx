@@ -27,8 +27,8 @@ export default function Login() {
       <h1>TestsApp</h1>
       <form onSubmit={handleSubmit}>
         <input
-          type="email"
-          placeholder="Email"
+          type="text"
+          placeholder="Usuario o email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           required

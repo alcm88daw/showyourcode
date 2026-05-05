@@ -4,6 +4,7 @@ import { useAuth } from '../context/AuthContext'
 import Login from '../pages/Login'
 import ProfesorDashboard from '../pages/profesor/Dashboard'
 import GestionUTs from '../pages/profesor/GestionUTs'
+import GestionPreguntas from '../pages/profesor/GestionPreguntas'
 import Resultados from '../pages/profesor/Resultados'
 import AlumnoDashboard from '../pages/alumno/Dashboard'
 import Test from '../pages/alumno/Test'
@@ -17,14 +18,22 @@ function PrivateRoute({ children, allowedRole }) {
   return children
 }
 
+function PublicRoute({ children }) {
+  const { user, role, loading } = useAuth()
+  if (loading) return null
+  if (user) return <Navigate to={role === 'profesor' ? '/profesor' : '/alumno'} replace />
+  return children
+}
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
       <Routes>
-        <Route path="/login" element={<Login />} />
+        <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 
         <Route path="/profesor" element={<PrivateRoute allowedRole="profesor"><ProfesorDashboard /></PrivateRoute>} />
         <Route path="/profesor/uts" element={<PrivateRoute allowedRole="profesor"><GestionUTs /></PrivateRoute>} />
+        <Route path="/profesor/uts/:utId/preguntas" element={<PrivateRoute allowedRole="profesor"><GestionPreguntas /></PrivateRoute>} />
         <Route path="/profesor/resultados" element={<PrivateRoute allowedRole="profesor"><Resultados /></PrivateRoute>} />
 
         <Route path="/alumno" element={<PrivateRoute allowedRole="alumno"><AlumnoDashboard /></PrivateRoute>} />

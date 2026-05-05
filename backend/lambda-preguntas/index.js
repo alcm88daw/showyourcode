@@ -3,7 +3,7 @@ const { DynamoDBDocumentClient, QueryCommand, PutCommand, UpdateCommand, DeleteC
 const { randomUUID } = require('crypto')
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient())
-const TABLE = process.env.TABLE_NAME
+const TABLE = process.env.PREGUNTAS_TABLE
 
 const response = (statusCode, body) => ({
   statusCode,
@@ -20,22 +20,21 @@ exports.handler = async (event) => {
     if (method === 'GET') {
       const { Items } = await db.send(new QueryCommand({
         TableName: TABLE,
-        KeyConditionExpression: 'PK = :pk',
-        ExpressionAttributeValues: { ':pk': `UT#${utId}` },
+        KeyConditionExpression: 'ut_id = :utId',
+        ExpressionAttributeValues: { ':utId': utId },
       }))
-      return response(200, Items.filter((i) => i.SK.startsWith('PREGUNTA#')))
+      return response(200, Items)
     }
 
     if (method === 'POST') {
       const body = JSON.parse(event.body)
-      const preguntaId = randomUUID()
       const item = {
-        PK: `UT#${body.utId}`,
-        SK: `PREGUNTA#${preguntaId}`,
-        id: preguntaId,
+        ut_id: body.ut_id,
+        pregunta_id: randomUUID(),
         enunciado: body.enunciado,
         opciones: body.opciones,
-        respuestaCorrecta: body.respuestaCorrecta,
+        respuesta_correcta: body.respuesta_correcta,
+        dificultad: body.dificultad ?? 1,
       }
       await db.send(new PutCommand({ TableName: TABLE, Item: item }))
       return response(201, item)
@@ -45,22 +44,23 @@ exports.handler = async (event) => {
       const body = JSON.parse(event.body)
       await db.send(new UpdateCommand({
         TableName: TABLE,
-        Key: { PK: `UT#${body.utId}`, SK: `PREGUNTA#${id}` },
-        UpdateExpression: 'SET enunciado = :e, opciones = :o, respuestaCorrecta = :r',
+        Key: { ut_id: body.ut_id, pregunta_id: id },
+        UpdateExpression: 'SET enunciado = :e, opciones = :o, respuesta_correcta = :r, dificultad = :d',
         ExpressionAttributeValues: {
           ':e': body.enunciado,
           ':o': body.opciones,
-          ':r': body.respuestaCorrecta,
+          ':r': body.respuesta_correcta,
+          ':d': body.dificultad ?? 1,
         },
       }))
-      return response(200, { id })
+      return response(200, { pregunta_id: id })
     }
 
     if (method === 'DELETE') {
       const body = JSON.parse(event.body || '{}')
       await db.send(new DeleteCommand({
         TableName: TABLE,
-        Key: { PK: `UT#${body.utId}`, SK: `PREGUNTA#${id}` },
+        Key: { ut_id: body.ut_id, pregunta_id: id },
       }))
       return response(204, {})
     }

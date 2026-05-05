@@ -7,10 +7,6 @@ Globals:
     Runtime: nodejs20.x
     Timeout: 15
     MemorySize: 256
-    Environment:
-      Variables:
-        TABLE_NAME: !Ref MainTable
-        USER_POOL_ID: !Ref UserPool
 
 # ─── Parámetros ────────────────────────────────────────────────────────────────
 Parameters:
@@ -41,43 +37,105 @@ Resources:
       GenerateSecret: false
       ExplicitAuthFlows:
         - ALLOW_USER_PASSWORD_AUTH
+        - ALLOW_USER_SRP_AUTH
         - ALLOW_REFRESH_TOKEN_AUTH
 
-  # DynamoDB
-  MainTable:
+  # ─── DynamoDB ────────────────────────────────────────────────────────────────
+
+  UtsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub testsapp-${Stage}
+      TableName: !Sub testsapp-uts-${Stage}
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
-        - AttributeName: PK
-          AttributeType: S
-        - AttributeName: SK
+        - AttributeName: ut_id
           AttributeType: S
       KeySchema:
-        - AttributeName: PK
+        - AttributeName: ut_id
           KeyType: HASH
-        - AttributeName: SK
+
+  PreguntasTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub testsapp-preguntas-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: ut_id
+          AttributeType: S
+        - AttributeName: pregunta_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: ut_id
+          KeyType: HASH
+        - AttributeName: pregunta_id
           KeyType: RANGE
 
-  # API Gateway
+  ResultadosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub testsapp-resultados-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: alumno_id
+          AttributeType: S
+        - AttributeName: ut_id_timestamp
+          AttributeType: S
+      KeySchema:
+        - AttributeName: alumno_id
+          KeyType: HASH
+        - AttributeName: ut_id_timestamp
+          KeyType: RANGE
+
+  UsuariosTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: !Sub testsapp-usuarios-${Stage}
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: user_id
+          AttributeType: S
+        - AttributeName: grupo
+          AttributeType: S
+      KeySchema:
+        - AttributeName: user_id
+          KeyType: HASH
+      GlobalSecondaryIndexes:
+        - IndexName: grupo-index
+          KeySchema:
+            - AttributeName: grupo
+              KeyType: HASH
+          Projection:
+            ProjectionType: ALL
+
+  # ─── API Gateway ─────────────────────────────────────────────────────────────
   Api:
     Type: AWS::Serverless::Api
     Properties:
       Name: !Sub testsapp-api-${Stage}
       StageName: !Ref Stage
+      Cors:
+        AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
+        AllowHeaders: "'Content-Type,Authorization'"
+        AllowOrigin: "'*'"
       Auth:
         DefaultAuthorizer: CognitoAuth
         Authorizers:
           CognitoAuth:
             UserPoolArn: !GetAtt UserPool.Arn
+        AddDefaultAuthorizerToCorsPreflight: false
 
-  # Lambda: Auth (Cognito triggers)
+  # ─── Lambda: Auth (Cognito trigger) ──────────────────────────────────────────
   AuthFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: backend/lambda-auth/
       Handler: index.handler
+      Environment:
+        Variables:
+          USUARIOS_TABLE: !Ref UsuariosTable
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsuariosTable
       Events:
         PostConfirmation:
           Type: Cognito
@@ -85,15 +143,18 @@ Resources:
             UserPool: !Ref UserPool
             Trigger: PostConfirmation
 
-  # Lambda: UTs
+  # ─── Lambda: UTs ─────────────────────────────────────────────────────────────
   UtsFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: backend/lambda-uts/
       Handler: index.handler
+      Environment:
+        Variables:
+          UTS_TABLE: !Ref UtsTable
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref MainTable
+            TableName: !Ref UtsTable
       Events:
         GetUts:
           Type: Api
@@ -120,15 +181,18 @@ Resources:
             Path: /uts/{id}
             Method: DELETE
 
-  # Lambda: Preguntas
+  # ─── Lambda: Preguntas ───────────────────────────────────────────────────────
   PreguntasFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: backend/lambda-preguntas/
       Handler: index.handler
+      Environment:
+        Variables:
+          PREGUNTAS_TABLE: !Ref PreguntasTable
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref MainTable
+            TableName: !Ref PreguntasTable
       Events:
         GetPreguntas:
           Type: Api
@@ -155,15 +219,18 @@ Resources:
             Path: /preguntas/{id}
             Method: DELETE
 
-  # Lambda: Resultados
+  # ─── Lambda: Resultados ──────────────────────────────────────────────────────
   ResultadosFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: backend/lambda-resultados/
       Handler: index.handler
+      Environment:
+        Variables:
+          RESULTADOS_TABLE: !Ref ResultadosTable
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref MainTable
+            TableName: !Ref ResultadosTable
       Events:
         SaveResultado:
           Type: Api
@@ -178,15 +245,18 @@ Resources:
             Path: /resultados
             Method: GET
 
-  # Lambda: Ranking
+  # ─── Lambda: Ranking ─────────────────────────────────────────────────────────
   RankingFunction:
     Type: AWS::Serverless::Function
     Properties:
       CodeUri: backend/lambda-ranking/
       Handler: index.handler
+      Environment:
+        Variables:
+          RESULTADOS_TABLE: !Ref ResultadosTable
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref MainTable
+            TableName: !Ref ResultadosTable
       Events:
         GetRanking:
           Type: Api
@@ -195,7 +265,7 @@ Resources:
             Path: /ranking
             Method: GET
 
-  # Lambda: Accesibilidad (Polly + Translate)
+  # ─── Lambda: Accesibilidad ───────────────────────────────────────────────────
   AccesibilidadFunction:
     Type: AWS::Serverless::Function
     Properties:
@@ -233,6 +303,15 @@ Outputs:
   UserPoolClientId:
     Description: Cognito App Client ID
     Value: !Ref UserPoolClient
-  TableName:
-    Description: Nombre de la tabla DynamoDB
-    Value: !Ref MainTable
+  UtsTableName:
+    Description: Tabla UTs
+    Value: !Ref UtsTable
+  PreguntasTableName:
+    Description: Tabla Preguntas
+    Value: !Ref PreguntasTable
+  ResultadosTableName:
+    Description: Tabla Resultados
+    Value: !Ref ResultadosTable
+  UsuariosTableName:
+    Description: Tabla Usuarios
+    Value: !Ref UsuariosTable

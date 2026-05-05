@@ -1,9 +1,8 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
-const { DynamoDBDocumentClient, ScanCommand, PutCommand } = require('@aws-sdk/lib-dynamodb')
-const { randomUUID } = require('crypto')
+const { DynamoDBDocumentClient, ScanCommand, PutCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb')
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient())
-const TABLE = process.env.TABLE_NAME
+const TABLE = process.env.RESULTADOS_TABLE
 
 const response = (statusCode, body) => ({
   statusCode,
@@ -17,25 +16,37 @@ exports.handler = async (event) => {
   try {
     if (method === 'POST') {
       const body = JSON.parse(event.body)
-      const alumnoId = event.requestContext?.authorizer?.claims?.sub
+      const alumno_id = event.requestContext?.authorizer?.claims?.sub
+      const timestamp = new Date().toISOString()
       const resultado = {
-        PK: `RESULTADO#${randomUUID()}`,
-        SK: 'META',
-        alumnoId,
-        utId: body.utId,
+        alumno_id,
+        ut_id_timestamp: `${body.ut_id}#${timestamp}`,
+        ut_id: body.ut_id,
         respuestas: body.respuestas,
-        nota: calcularNota(body.respuestas, body.respuestasCorrectas),
-        fecha: new Date().toISOString(),
+        nota: calcularNota(body.respuestas, body.respuestas_correctas),
+        correctas: body.correctas,
+        total: body.total,
+        grupo: body.grupo || '',
+        fecha: timestamp,
       }
       await db.send(new PutCommand({ TableName: TABLE, Item: resultado }))
       return response(201, resultado)
     }
 
     if (method === 'GET') {
-      const { Items } = await db.send(new ScanCommand({
+      const alumno_id = event.requestContext?.authorizer?.claims?.sub
+      const role = event.requestContext?.authorizer?.claims?.['custom:role']
+
+      // El profesor ve todos los resultados; el alumno solo los suyos
+      if (role === 'profesor') {
+        const { Items } = await db.send(new ScanCommand({ TableName: TABLE }))
+        return response(200, Items)
+      }
+
+      const { Items } = await db.send(new QueryCommand({
         TableName: TABLE,
-        FilterExpression: 'begins_with(PK, :prefix)',
-        ExpressionAttributeValues: { ':prefix': 'RESULTADO#' },
+        KeyConditionExpression: 'alumno_id = :id',
+        ExpressionAttributeValues: { ':id': alumno_id },
       }))
       return response(200, Items)
     }
@@ -47,8 +58,9 @@ exports.handler = async (event) => {
   }
 }
 
-function calcularNota(respuestas, correctas = {}) {
-  if (!Object.keys(correctas).length) return null
+function calcularNota(respuestas = {}, correctas = {}) {
+  const total = Object.keys(correctas).length
+  if (!total) return null
   const acertadas = Object.entries(respuestas).filter(([id, r]) => correctas[id] === r).length
-  return Math.round((acertadas / Object.keys(correctas).length) * 10 * 100) / 100
+  return Math.round((acertadas / total) * 10 * 100) / 100
 }
