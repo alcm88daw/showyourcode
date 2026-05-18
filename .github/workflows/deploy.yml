@@ -2,11 +2,11 @@ name: Deploy TestsApp
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
 
 env:
-  AWS_REGION: eu-west-1
+  AWS_REGION: eu-south-2
   SAM_STACK_NAME: testsapp
 
 jobs:
@@ -20,7 +20,7 @@ jobs:
       - name: Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: '22'
 
       - name: Configurar credenciales AWS
         uses: aws-actions/configure-aws-credentials@v4
@@ -45,19 +45,23 @@ jobs:
             --no-fail-on-empty-changeset \
             --parameter-overrides Stage=prod
 
-      - name: Obtener URL de la API
-        id: api-url
+      - name: Obtener outputs del stack
+        id: stack-outputs
         run: |
-          API_URL=$(aws cloudformation describe-stacks \
+          OUTPUTS=$(aws cloudformation describe-stacks \
             --stack-name ${{ env.SAM_STACK_NAME }} \
-            --query "Stacks[0].Outputs[?OutputKey=='ApiUrl'].OutputValue" \
-            --output text)
-          echo "api_url=$API_URL" >> $GITHUB_OUTPUT
+            --query "Stacks[0].Outputs" \
+            --output json)
+          echo "api_url=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="ApiUrl") | .OutputValue')" >> $GITHUB_OUTPUT
+          echo "user_pool_id=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="UserPoolId") | .OutputValue')" >> $GITHUB_OUTPUT
+          echo "user_pool_client_id=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="UserPoolClientId") | .OutputValue')" >> $GITHUB_OUTPUT
 
       - name: Build frontend
         working-directory: frontend
         env:
-          VITE_API_URL: ${{ steps.api-url.outputs.api_url }}
+          VITE_API_URL: ${{ steps.stack-outputs.outputs.api_url }}
+          VITE_USER_POOL_ID: ${{ steps.stack-outputs.outputs.user_pool_id }}
+          VITE_USER_POOL_CLIENT_ID: ${{ steps.stack-outputs.outputs.user_pool_client_id }}
         run: npm ci && npm run build
 
       - name: Deploy frontend a S3

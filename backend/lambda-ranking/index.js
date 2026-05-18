@@ -1,8 +1,8 @@
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
-const { DynamoDBDocumentClient, ScanCommand } = require('@aws-sdk/lib-dynamodb')
+const { DynamoDBDocumentClient, ScanCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb')
 
 const db = DynamoDBDocumentClient.from(new DynamoDBClient())
-const TABLE = process.env.RESULTADOS_TABLE
+const USUARIOS_TABLE = process.env.USUARIOS_TABLE
 
 const response = (statusCode, body) => ({
   statusCode,
@@ -12,26 +12,39 @@ const response = (statusCode, body) => ({
 
 exports.handler = async (event) => {
   try {
-    const { Items } = await db.send(new ScanCommand({
-      TableName: TABLE,
-      FilterExpression: 'attribute_exists(nota)',
-    }))
+    const grupo = event.queryStringParameters?.grupo
 
-    const porAlumno = {}
-    for (const r of Items) {
-      if (!porAlumno[r.alumno_id]) {
-        porAlumno[r.alumno_id] = { alumno_id: r.alumno_id, grupo: r.grupo || '', notas: [] }
-      }
-      if (r.nota !== null) porAlumno[r.alumno_id].notas.push(r.nota)
+    let items
+    if (grupo) {
+      // Consulta eficiente por grupo usando el GSI
+      const { Items } = await db.send(new QueryCommand({
+        TableName: USUARIOS_TABLE,
+        IndexName: 'grupo-index',
+        KeyConditionExpression: 'grupo = :g',
+        ExpressionAttributeValues: { ':g': grupo },
+      }))
+      items = Items
+    } else {
+      // Sin filtro: scan sobre Usuarios (una fila por alumno, mucho más eficiente que escanear Resultados)
+      const { Items } = await db.send(new ScanCommand({
+        TableName: USUARIOS_TABLE,
+        FilterExpression: 'attribute_exists(correctas_total)',
+      }))
+      items = Items
     }
 
-    const ranking = Object.values(porAlumno)
-      .map((a) => ({
-        ...a,
-        media: a.notas.reduce((s, n) => s + n, 0) / (a.notas.length || 1),
-        intentos: a.notas.length,
+    const ranking = items
+      .map((u) => ({
+        alumno_id: u.user_id,
+        nombre: u.nombre || u.email || u.user_id,
+        grupo: u.grupo || '',
+        correctas_total: u.correctas_total ?? 0,
+        intentos_total: u.intentos_total ?? 0,
+        media: u.intentos_total > 0
+          ? Math.round((u.correctas_total / u.intentos_total) * 10 * 100) / 100
+          : 0,
       }))
-      .sort((a, b) => b.media - a.media)
+      .sort((a, b) => b.correctas_total - a.correctas_total)
 
     return response(200, ranking)
   } catch (err) {

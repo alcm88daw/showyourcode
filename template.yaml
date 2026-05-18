@@ -4,7 +4,7 @@ Description: TestsApp - Infraestructura completa
 
 Globals:
   Function:
-    Runtime: nodejs20.x
+    Runtime: nodejs22.x
     Timeout: 15
     MemorySize: 256
 
@@ -228,9 +228,12 @@ Resources:
       Environment:
         Variables:
           RESULTADOS_TABLE: !Ref ResultadosTable
+          USUARIOS_TABLE: !Ref UsuariosTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref ResultadosTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UsuariosTable
       Events:
         SaveResultado:
           Type: Api
@@ -253,10 +256,10 @@ Resources:
       Handler: index.handler
       Environment:
         Variables:
-          RESULTADOS_TABLE: !Ref ResultadosTable
+          USUARIOS_TABLE: !Ref UsuariosTable
       Policies:
         - DynamoDBCrudPolicy:
-            TableName: !Ref ResultadosTable
+            TableName: !Ref UsuariosTable
       Events:
         GetRanking:
           Type: Api
