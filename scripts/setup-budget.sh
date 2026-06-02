@@ -71,14 +71,19 @@ echo "   Policy: $POLICY_ARN"
 echo "[3/6] Creando rol de ejecución para Budget Actions..."
 EXEC_ROLE_ARN=$(aws iam create-role \
   --role-name testsapp-budget-actions-role \
-  --assume-role-policy-document '{
-    "Version":"2012-10-17",
-    "Statement":[{
-      "Effect":"Allow",
-      "Principal":{"Service":"budgets.amazonaws.com"},
-      "Action":"sts:AssumeRole"
+  --assume-role-policy-document "{
+    \"Version\":\"2012-10-17\",
+    \"Statement\":[{
+      \"Effect\":\"Allow\",
+      \"Principal\":{\"Service\":\"budgets.amazonaws.com\"},
+      \"Action\":\"sts:AssumeRole\",
+      \"Condition\":{
+        \"StringEquals\":{
+          \"aws:SourceAccount\":\"$ACCOUNT_ID\"
+        }
+      }
     }]
-  }' \
+  }" \
   --query Role.Arn --output text 2>/dev/null \
   || aws iam get-role \
        --role-name testsapp-budget-actions-role \

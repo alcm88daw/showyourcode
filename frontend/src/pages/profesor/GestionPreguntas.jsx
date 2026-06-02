@@ -65,7 +65,7 @@ export default function GestionPreguntas() {
     try {
       const payload = { ...form, opciones: ops, ut_id: utId }
       if (editandoId) { await updatePregunta(editandoId, payload); setPreguntas((p) => p.map((q) => q.pregunta_id === editandoId ? { ...q, ...payload, pregunta_id: editandoId } : q)) }
-      else { setPreguntas((p) => [...p, await createPregunta(payload)]) }
+      else { const nueva = await createPregunta(payload); setPreguntas((p) => [...p, nueva]) }
       cancelar()
     } catch { setError('Error al guardar') }
   }

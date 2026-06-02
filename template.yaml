@@ -14,10 +14,13 @@ Parameters:
     Type: String
     Default: dev
     AllowedValues: [dev, prod]
-  NotificationEmail:
+  CloudFrontDomain:
     Type: String
-    Default: alfcuemer@alu.edu.gva.com
-    Description: Email para alertas de presupuesto
+    Default: https://d3rtsa62advd2e.cloudfront.net
+    Description: Dominio CloudFront para restricción CORS en prod
+
+Conditions:
+  IsProd: !Equals [!Ref Stage, prod]
 
 # ─── Recursos ──────────────────────────────────────────────────────────────────
 Resources:
@@ -120,7 +123,7 @@ Resources:
       Cors:
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
-        AllowOrigin: "'*'"
+        AllowOrigin: !If [IsProd, !Sub "'${CloudFrontDomain}'", "'*'"]
       Auth:
         DefaultAuthorizer: CognitoAuth
         Authorizers:
@@ -346,6 +349,69 @@ Resources:
             Method: POST
 
 
+  # ─── Frontend: S3 + CloudFront ───────────────────────────────────────────────
+
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub testsapp-frontend-${Stage}-${AWS::AccountId}
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  CloudFrontOAC:
+    Type: AWS::CloudFront::OriginAccessControl
+    Properties:
+      OriginAccessControlConfig:
+        Name: !Sub testsapp-oac-${Stage}
+        OriginAccessControlOriginType: s3
+        SigningBehavior: always
+        SigningProtocol: sigv4
+
+  CloudFrontDistribution:
+    Type: AWS::CloudFront::Distribution
+    Properties:
+      DistributionConfig:
+        Enabled: true
+        DefaultRootObject: index.html
+        PriceClass: PriceClass_100
+        Origins:
+          - Id: S3Origin
+            DomainName: !GetAtt S3Bucket.RegionalDomainName
+            OriginAccessControlId: !Ref CloudFrontOAC
+            S3OriginConfig:
+              OriginAccessIdentity: ''
+        DefaultCacheBehavior:
+          ViewerProtocolPolicy: redirect-to-https
+          TargetOriginId: S3Origin
+          CachePolicyId: 658327ea-f89d-4fab-a63d-7e88639e58f6  # CachingOptimized (managed)
+          Compress: true
+        CustomErrorResponses:
+          - ErrorCode: 403
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+          - ErrorCode: 404
+            ResponseCode: 200
+            ResponsePagePath: /index.html
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: cloudfront.amazonaws.com
+            Action: s3:GetObject
+            Resource: !Sub '${S3Bucket.Arn}/*'
+            Condition:
+              StringEquals:
+                AWS:SourceArn: !Sub 'arn:aws:cloudfront::${AWS::AccountId}:distribution/${CloudFrontDistribution}'
+
 # ─── Outputs ───────────────────────────────────────────────────────────────────
 Outputs:
   ApiUrl:
@@ -369,3 +435,12 @@ Outputs:
   UsuariosTableName:
     Description: Tabla Usuarios
     Value: !Ref UsuariosTable
+  S3BucketName:
+    Description: Bucket S3 del frontend
+    Value: !Ref S3Bucket
+  CloudFrontDistributionId:
+    Description: ID de la distribución CloudFront
+    Value: !Ref CloudFrontDistribution
+  CloudFrontUrl:
+    Description: URL pública del frontend
+    Value: !Sub https://${CloudFrontDistribution.DomainName}

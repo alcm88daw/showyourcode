@@ -37,7 +37,8 @@ export default function GestionUTs() {
         await updateUT(editandoId, form)
         setUts((p) => p.map((u) => u.ut_id === editandoId ? { ...u, ...form } : u))
       } else {
-        setUts((p) => [...p, await createUT(form)])
+        const nueva = await createUT(form)
+        setUts((p) => [...p, nueva])
       }
       cancelar()
     } catch { setError('Error al guardar') }
