@@ -16,8 +16,8 @@ export default function ProfesorLayout() {
       {/* Sidebar */}
       <aside className="w-60 shrink-0 bg-app-surface border-r border-app-border flex flex-col">
         <div className="px-5 py-6 border-b border-app-border">
-          <span className="text-lg font-bold bg-gradient-to-r from-app-blue to-purple-400 bg-clip-text text-transparent">
-            TestsApp
+          <span className="text-lg font-bold bg-gradient-to-r from-app-blue to-[#00A550] bg-clip-text text-transparent">
+            ShowYourCode
           </span>
           <p className="text-xs text-gray-500 mt-1 truncate">{user?.email}</p>
         </div>

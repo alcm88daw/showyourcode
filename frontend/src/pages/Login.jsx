@@ -55,8 +55,8 @@ export default function Login() {
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-app-blue to-purple-400 bg-clip-text text-transparent">
-            TestsApp
+          <h1 className="text-4xl font-bold bg-gradient-to-r from-app-blue to-[#00A550] bg-clip-text text-transparent">
+            ShowYourCode
           </h1>
           <p className="text-gray-500 text-sm mt-2">Plataforma de evaluación</p>
         </div>
