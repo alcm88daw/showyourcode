@@ -14,6 +14,10 @@ Parameters:
     Type: String
     Default: dev
     AllowedValues: [dev, prod]
+  NotificationEmail:
+    Type: String
+    Default: alfcuemer@alu.edu.gva.com
+    Description: Email para alertas de presupuesto
 
 # ─── Recursos ──────────────────────────────────────────────────────────────────
 Resources:
@@ -340,6 +344,7 @@ Resources:
             RestApiId: !Ref Api
             Path: /accesibilidad/traducir
             Method: POST
+
 
 # ─── Outputs ───────────────────────────────────────────────────────────────────
 Outputs:
