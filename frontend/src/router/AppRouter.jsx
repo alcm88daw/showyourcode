@@ -2,9 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 
 import Login from '../pages/Login'
+import ProfesorLayout from '../components/profesor/ProfesorLayout'
 import ProfesorDashboard from '../pages/profesor/Dashboard'
 import GestionUTs from '../pages/profesor/GestionUTs'
 import GestionPreguntas from '../pages/profesor/GestionPreguntas'
+import GestionAlumnos from '../pages/profesor/GestionAlumnos'
 import Resultados from '../pages/profesor/Resultados'
 import AlumnoDashboard from '../pages/alumno/Dashboard'
 import Test from '../pages/alumno/Test'
@@ -31,11 +33,16 @@ export default function AppRouter() {
       <Routes>
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 
-        <Route path="/profesor" element={<PrivateRoute allowedRole="profesor"><ProfesorDashboard /></PrivateRoute>} />
-        <Route path="/profesor/uts" element={<PrivateRoute allowedRole="profesor"><GestionUTs /></PrivateRoute>} />
-        <Route path="/profesor/uts/:utId/preguntas" element={<PrivateRoute allowedRole="profesor"><GestionPreguntas /></PrivateRoute>} />
-        <Route path="/profesor/resultados" element={<PrivateRoute allowedRole="profesor"><Resultados /></PrivateRoute>} />
+        {/* Profesor — layout con sidebar */}
+        <Route element={<PrivateRoute allowedRole="profesor"><ProfesorLayout /></PrivateRoute>}>
+          <Route path="/profesor" element={<ProfesorDashboard />} />
+          <Route path="/profesor/uts" element={<GestionUTs />} />
+          <Route path="/profesor/uts/:utId/preguntas" element={<GestionPreguntas />} />
+          <Route path="/profesor/alumnos" element={<GestionAlumnos />} />
+          <Route path="/profesor/resultados" element={<Resultados />} />
+        </Route>
 
+        {/* Alumno */}
         <Route path="/alumno" element={<PrivateRoute allowedRole="alumno"><AlumnoDashboard /></PrivateRoute>} />
         <Route path="/alumno/test/:utId" element={<PrivateRoute allowedRole="alumno"><Test /></PrivateRoute>} />
         <Route path="/alumno/ranking" element={<PrivateRoute allowedRole="alumno"><Ranking /></PrivateRoute>} />

@@ -17,7 +17,8 @@ exports.handler = async (event) => {
   try {
     if (method === 'POST') {
       const body = JSON.parse(event.body)
-      const alumno_id = event.requestContext?.authorizer?.claims?.sub
+      const claims = event.requestContext?.authorizer?.claims ?? {}
+      const alumno_id = claims.sub
       const timestamp = new Date().toISOString()
 
       const nota = calcularNota(body.respuestas, body.respuestas_correctas)
@@ -38,12 +39,18 @@ exports.handler = async (event) => {
 
       await db.send(new PutCommand({ TableName: RESULTADOS_TABLE, Item: resultado }))
 
-      // Actualizar contadores atómicos en la tabla Usuarios
+      // Actualizar contadores atómicos; si_not_exists garantiza que no sobreescribe nombre ya guardado
       await db.send(new UpdateCommand({
         TableName: USUARIOS_TABLE,
         Key: { user_id: alumno_id },
-        UpdateExpression: 'ADD correctas_total :c, intentos_total :i',
-        ExpressionAttributeValues: { ':c': correctas, ':i': 1 },
+        UpdateExpression: 'ADD correctas_total :c, intentos_total :i SET nombre = if_not_exists(nombre, :n), email = if_not_exists(email, :e), rol = if_not_exists(rol, :r)',
+        ExpressionAttributeValues: {
+          ':c': correctas,
+          ':i': 1,
+          ':n': claims.name || claims.email || alumno_id,
+          ':e': claims.email || '',
+          ':r': 'alumno',
+        },
       }))
 
       return response(201, resultado)

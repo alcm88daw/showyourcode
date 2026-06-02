@@ -1,0 +1,12 @@
+{
+  "name": "lambda-usuarios",
+  "version": "1.0.0",
+  "description": "Gestión de alumnos por el profesor",
+  "main": "index.js",
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.0.0",
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/lib-dynamodb": "^3.0.0"
+  }
+}
