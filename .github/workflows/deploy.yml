@@ -9,6 +9,7 @@ env:
   AWS_REGION: eu-south-2
   STAGE: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
   SAM_STACK_NAME: ${{ github.ref_name == 'main' && 'showyourcode-prod' || 'showyourcode-dev' }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
