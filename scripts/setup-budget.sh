@@ -6,11 +6,11 @@
 # Ejemplo: ./scripts/setup-budget.sh acm.alfredo@gmail.com
 set -euo pipefail
 
-STACK_NAME="testsapp"
+STACK_NAME="showyourcode"
 DEPLOY_REGION="eu-south-2"
 BUDGET_REGION="us-east-1"   # Budgets usa siempre us-east-1
 EMAIL="${1:-acm.alfredo@gmail.com}"
-BUDGET_NAME="testsapp-monthly"
+BUDGET_NAME="showyourcode-monthly"
 
 ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 echo "Cuenta AWS : $ACCOUNT_ID"
@@ -20,7 +20,7 @@ echo ""
 # ── 1. SNS topic en us-east-1 (Budgets solo puede notificar a tópicos en us-east-1)
 echo "[1/6] Creando SNS topic..."
 TOPIC_ARN=$(aws sns create-topic \
-  --name testsapp-budget-alerts \
+  --name showyourcode-budget-alerts \
   --region "$BUDGET_REGION" \
   --query TopicArn --output text)
 
@@ -50,7 +50,7 @@ echo "   Confirma la suscripción en el email que recibirás en $EMAIL"
 # ── 2. IAM: política de denegación (IAM es global, sin región)
 echo "[2/6] Creando política IAM de denegación..."
 POLICY_ARN=$(aws iam create-policy \
-  --policy-name testsapp-deny-spending \
+  --policy-name showyourcode-deny-spending \
   --description "Se adjunta a los roles Lambda cuando se supera el presupuesto mensual" \
   --policy-document '{
     "Version":"2012-10-17",
@@ -63,14 +63,14 @@ POLICY_ARN=$(aws iam create-policy \
   }' \
   --query Policy.Arn --output text 2>/dev/null \
   || aws iam list-policies \
-       --query "Policies[?PolicyName=='testsapp-deny-spending'].Arn" \
+       --query "Policies[?PolicyName=='showyourcode-deny-spending'].Arn" \
        --output text)
 echo "   Policy: $POLICY_ARN"
 
 # ── 3. IAM: rol de ejecución que usa Budgets para adjuntar la política
 echo "[3/6] Creando rol de ejecución para Budget Actions..."
 EXEC_ROLE_ARN=$(aws iam create-role \
-  --role-name testsapp-budget-actions-role \
+  --role-name showyourcode-budget-actions-role \
   --assume-role-policy-document "{
     \"Version\":\"2012-10-17\",
     \"Statement\":[{
@@ -86,11 +86,11 @@ EXEC_ROLE_ARN=$(aws iam create-role \
   }" \
   --query Role.Arn --output text 2>/dev/null \
   || aws iam get-role \
-       --role-name testsapp-budget-actions-role \
+       --role-name showyourcode-budget-actions-role \
        --query Role.Arn --output text)
 
 aws iam put-role-policy \
-  --role-name testsapp-budget-actions-role \
+  --role-name showyourcode-budget-actions-role \
   --policy-name AllowIAMPolicyActions \
   --policy-document '{
     "Version":"2012-10-17",

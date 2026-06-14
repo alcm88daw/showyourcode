@@ -29,7 +29,7 @@ Resources:
   UserPool:
     Type: AWS::Cognito::UserPool
     Properties:
-      UserPoolName: !Sub testsapp-users-${Stage}
+      UserPoolName: !Sub showyourcode-users-${Stage}
       AutoVerifiedAttributes: [email]
       Schema:
         - Name: role
@@ -39,7 +39,7 @@ Resources:
   UserPoolClient:
     Type: AWS::Cognito::UserPoolClient
     Properties:
-      ClientName: !Sub testsapp-client-${Stage}
+      ClientName: !Sub showyourcode-client-${Stage}
       UserPoolId: !Ref UserPool
       GenerateSecret: false
       ExplicitAuthFlows:
@@ -52,7 +52,7 @@ Resources:
   UtsTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub testsapp-uts-${Stage}
+      TableName: !Sub showyourcode-uts-${Stage}
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: ut_id
@@ -64,7 +64,7 @@ Resources:
   PreguntasTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub testsapp-preguntas-${Stage}
+      TableName: !Sub showyourcode-preguntas-${Stage}
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: ut_id
@@ -80,7 +80,7 @@ Resources:
   ResultadosTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub testsapp-resultados-${Stage}
+      TableName: !Sub showyourcode-resultados-${Stage}
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: alumno_id
@@ -96,7 +96,7 @@ Resources:
   UsuariosTable:
     Type: AWS::DynamoDB::Table
     Properties:
-      TableName: !Sub testsapp-usuarios-${Stage}
+      TableName: !Sub showyourcode-usuarios-${Stage}
       BillingMode: PAY_PER_REQUEST
       AttributeDefinitions:
         - AttributeName: user_id
@@ -118,7 +118,7 @@ Resources:
   Api:
     Type: AWS::Serverless::Api
     Properties:
-      Name: !Sub testsapp-api-${Stage}
+      Name: !Sub showyourcode-api-${Stage}
       StageName: !Ref Stage
       Cors:
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
@@ -354,7 +354,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
     Properties:
-      BucketName: !Sub testsapp-frontend-${Stage}-${AWS::AccountId}
+      BucketName: !Sub showyourcode-frontend-${Stage}-${AWS::AccountId}
       PublicAccessBlockConfiguration:
         BlockPublicAcls: true
         BlockPublicPolicy: true
@@ -365,7 +365,7 @@ Resources:
     Type: AWS::CloudFront::OriginAccessControl
     Properties:
       OriginAccessControlConfig:
-        Name: !Sub testsapp-oac-${Stage}
+        Name: !Sub showyourcode-oac-${Stage}
         OriginAccessControlOriginType: s3
         SigningBehavior: always
         SigningProtocol: sigv4

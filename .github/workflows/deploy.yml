@@ -1,13 +1,15 @@
-name: Deploy TestsApp
+name: Deploy ShowYourCode
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
   workflow_dispatch:
 
 env:
   AWS_REGION: eu-south-2
-  SAM_STACK_NAME: testsapp
+  STAGE: ${{ github.ref_name == 'main' && 'prod' || 'dev' }}
+  SAM_STACK_NAME: ${{ github.ref_name == 'main' && 'showyourcode-prod' || 'showyourcode-dev' }}
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   deploy:
@@ -43,18 +45,22 @@ jobs:
             --capabilities CAPABILITY_IAM \
             --no-confirm-changeset \
             --no-fail-on-empty-changeset \
-            --parameter-overrides Stage=prod
+            --resolve-s3 \
+            --parameter-overrides Stage=${{ env.STAGE }}
 
       - name: Obtener outputs del stack
         id: stack-outputs
         run: |
           OUTPUTS=$(aws cloudformation describe-stacks \
             --stack-name ${{ env.SAM_STACK_NAME }} \
+            --region ${{ env.AWS_REGION }} \
             --query "Stacks[0].Outputs" \
             --output json)
           echo "api_url=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="ApiUrl") | .OutputValue')" >> $GITHUB_OUTPUT
           echo "user_pool_id=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="UserPoolId") | .OutputValue')" >> $GITHUB_OUTPUT
           echo "user_pool_client_id=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="UserPoolClientId") | .OutputValue')" >> $GITHUB_OUTPUT
+          echo "s3_bucket=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="S3BucketName") | .OutputValue')" >> $GITHUB_OUTPUT
+          echo "cf_distribution=$(echo $OUTPUTS | jq -r '.[] | select(.OutputKey=="CloudFrontDistributionId") | .OutputValue')" >> $GITHUB_OUTPUT
 
       - name: Build frontend
         working-directory: frontend
@@ -67,7 +73,14 @@ jobs:
       - name: Deploy frontend a S3
         working-directory: frontend
         run: |
-          aws s3 sync dist/ s3://${{ secrets.S3_BUCKET_NAME }} --delete
+          aws s3 sync dist/ s3://${{ steps.stack-outputs.outputs.s3_bucket }} \
+            --delete \
+            --region ${{ env.AWS_REGION }} \
+            --cache-control "public,max-age=31536000,immutable" \
+            --exclude "index.html"
+          aws s3 cp dist/index.html s3://${{ steps.stack-outputs.outputs.s3_bucket }}/index.html \
+            --region ${{ env.AWS_REGION }} \
+            --cache-control "no-cache,no-store,must-revalidate"
           aws cloudfront create-invalidation \
-            --distribution-id ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }} \
+            --distribution-id ${{ steps.stack-outputs.outputs.cf_distribution }} \
             --paths "/*"

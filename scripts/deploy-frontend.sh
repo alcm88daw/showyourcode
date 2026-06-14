@@ -3,7 +3,7 @@
 # Uso: ./scripts/deploy-frontend.sh
 set -euo pipefail
 
-STACK_NAME="testsapp"
+STACK_NAME="showyourcode"
 REGION="eu-south-2"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 ROOT_DIR="$(dirname "$SCRIPT_DIR")"
