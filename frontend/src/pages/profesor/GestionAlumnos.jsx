@@ -22,12 +22,12 @@ export default function GestionAlumnos() {
     getAlumnos().then((d) => setAlumnos(Array.isArray(d) ? d : [])).catch(() => setError('Error al cargar')).finally(() => setCargando(false))
   }, [])
 
-  const abrirNuevo = () => { setForm(FORM_VACIO); setEditandoId(null); setMostrarForm(true); setError(''); setInfo('') }
-  const abrirEdicion = (a) => { setForm({ nombre: a.nombre, email: a.email, grupo: a.grupo || '' }); setEditandoId(a.user_id); setMostrarForm(true); setError(''); setInfo('') }
+  const abrirNuevo = () => { setForm(FORM_VACIO); setEditandoId(null); setMostrarForm(true); setError(''); setAlumnoCreado(null) }
+  const abrirEdicion = (a) => { setForm({ nombre: a.nombre, email: a.email, grupo: a.grupo || '' }); setEditandoId(a.user_id); setMostrarForm(true); setError(''); setAlumnoCreado(null) }
   const cancelar = () => { setMostrarForm(false); setEditandoId(null); setForm(FORM_VACIO) }
 
   const handleSubmit = async (e) => {
-    e.preventDefault(); setGuardando(true); setError(''); setInfo('')
+    e.preventDefault(); setGuardando(true); setError(''); setAlumnoCreado(null)
     try {
       if (editandoId) {
         await updateAlumno(editandoId, { nombre: form.nombre, grupo: form.grupo })
