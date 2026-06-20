@@ -14,11 +14,6 @@ Parameters:
     Type: String
     Default: dev
     AllowedValues: [dev, prod]
-  CloudFrontDomain:
-    Type: String
-    Default: https://d3rtsa62advd2e.cloudfront.net
-    Description: Dominio CloudFront para restricción CORS en prod
-
 Conditions:
   IsProd: !Equals [!Ref Stage, prod]
 
@@ -123,7 +118,10 @@ Resources:
       Cors:
         AllowMethods: "'GET,POST,PUT,DELETE,OPTIONS'"
         AllowHeaders: "'Content-Type,Authorization'"
-        AllowOrigin: !If [IsProd, !Sub "'${CloudFrontDomain}'", "'*'"]
+        AllowOrigin: !If
+          - IsProd
+          - !Sub "'https://${CloudFrontDistribution.DomainName}'"
+          - "'*'"
       Auth:
         DefaultAuthorizer: CognitoAuth
         Authorizers:
