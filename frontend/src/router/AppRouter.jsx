@@ -27,9 +27,19 @@ function PublicRoute({ children }) {
   return children
 }
 
+function DevBanner() {
+  if (import.meta.env.VITE_STAGE !== 'dev') return null
+  return (
+    <div className="fixed top-0 left-0 right-0 z-50 bg-yellow-400 text-black text-xs font-bold text-center py-0.5 tracking-widest uppercase">
+      Entorno DEV
+    </div>
+  )
+}
+
 export default function AppRouter() {
   return (
     <BrowserRouter>
+      <DevBanner />
       <Routes>
         <Route path="/login" element={<PublicRoute><Login /></PublicRoute>} />
 

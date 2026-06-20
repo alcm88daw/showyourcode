@@ -68,6 +68,7 @@ jobs:
           VITE_API_URL: ${{ steps.stack-outputs.outputs.api_url }}
           VITE_USER_POOL_ID: ${{ steps.stack-outputs.outputs.user_pool_id }}
           VITE_USER_POOL_CLIENT_ID: ${{ steps.stack-outputs.outputs.user_pool_client_id }}
+          VITE_STAGE: ${{ env.STAGE }}
         run: npm ci && npm run build
 
       - name: Deploy frontend a S3
