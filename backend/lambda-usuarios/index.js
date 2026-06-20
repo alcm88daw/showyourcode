@@ -31,11 +31,13 @@ exports.handler = async (event) => {
     if (method === 'POST') {
       const { nombre, email, grupo } = JSON.parse(event.body)
 
+      const tempPassword = generarPasswordTemporal()
+
       // Crear usuario en Cognito con contraseña temporal
       const { User } = await cognito.send(new AdminCreateUserCommand({
         UserPoolId: USER_POOL_ID,
         Username: email,
-        TemporaryPassword: generarPasswordTemporal(),
+        TemporaryPassword: tempPassword,
         UserAttributes: [
           { Name: 'email', Value: email },
           { Name: 'email_verified', Value: 'true' },
@@ -60,7 +62,7 @@ exports.handler = async (event) => {
       }
       await db.send(new PutCommand({ TableName: USUARIOS_TABLE, Item: item }))
 
-      return response(201, item)
+      return response(201, { ...item, tempPassword })
     }
 
     if (method === 'PUT') {
@@ -101,9 +103,11 @@ exports.handler = async (event) => {
 }
 
 function generarPasswordTemporal() {
-  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789'
+  const letras = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz'
+  const numeros = '23456789'
   const especiales = '!@#$'
   let pwd = especiales[Math.floor(Math.random() * especiales.length)]
-  for (let i = 0; i < 9; i++) pwd += chars[Math.floor(Math.random() * chars.length)]
+  pwd += numeros[Math.floor(Math.random() * numeros.length)]
+  for (let i = 0; i < 8; i++) pwd += letras[Math.floor(Math.random() * letras.length)]
   return pwd.split('').sort(() => Math.random() - 0.5).join('')
 }

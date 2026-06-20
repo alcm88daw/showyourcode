@@ -4,6 +4,7 @@ import Button from '../../components/common/Button'
 import Card from '../../components/common/Card'
 import Input from '../../components/common/Input'
 import Spinner from '../../components/common/Spinner'
+import AlumnoCreadoBanner from '../../components/profesor/AlumnoCreadoBanner'
 
 const FORM_VACIO = { nombre: '', email: '', grupo: '' }
 
@@ -13,9 +14,9 @@ export default function GestionAlumnos() {
   const [editandoId, setEditandoId] = useState(null)
   const [mostrarForm, setMostrarForm] = useState(false)
   const [cargando, setCargando] = useState(true)
+  const [alumnoCreado, setAlumnoCreado] = useState(null)
   const [guardando, setGuardando] = useState(false)
   const [error, setError] = useState('')
-  const [info, setInfo] = useState('')
 
   useEffect(() => {
     getAlumnos().then((d) => setAlumnos(Array.isArray(d) ? d : [])).catch(() => setError('Error al cargar')).finally(() => setCargando(false))
@@ -35,8 +36,8 @@ export default function GestionAlumnos() {
       } else {
         const nuevo = await createAlumno(form)
         if (nuevo.message) throw new Error(nuevo.message)
-        setAlumnos((p) => [...p, nuevo])
-        setInfo('Alumno creado. Entrégale las credenciales manualmente.')
+        setAlumnos((p) => [...p, { ...nuevo, tempPassword: undefined }])
+        setAlumnoCreado({ email: nuevo.email, tempPassword: nuevo.tempPassword })
         cancelar()
       }
     } catch (err) { setError(err.message || 'Error al guardar') }
@@ -62,7 +63,7 @@ export default function GestionAlumnos() {
       </div>
 
       {error && <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-lg px-4 py-3 mb-6">{error}</p>}
-      {info && <p className="text-app-green text-sm bg-app-green/10 border border-app-green/20 rounded-lg px-4 py-3 mb-6">{info}</p>}
+      {alumnoCreado && <AlumnoCreadoBanner email={alumnoCreado.email} tempPassword={alumnoCreado.tempPassword} onClose={() => setAlumnoCreado(null)} />}
 
       {mostrarForm && (
         <Card className="p-6 mb-6">
