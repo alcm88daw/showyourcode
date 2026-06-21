@@ -182,8 +182,8 @@ export default function GestionPreguntas() {
                 ))}
               </ul>
               <div className="flex gap-2">
-                <Button variant="ghost" className="text-xs px-2 py-1" onClick={() => abrirEdicion(p)}>Editar</Button>
-                <Button variant="danger" className="text-xs px-2 py-1" onClick={() => handleEliminar(p)}>Eliminar</Button>
+                <Button variant="secondary" className="text-xs px-3 py-1.5" onClick={() => abrirEdicion(p)}>Editar</Button>
+                <Button variant="danger" className="text-xs px-3 py-1.5" onClick={() => handleEliminar(p)}>Eliminar</Button>
               </div>
             </Card>
           ))}

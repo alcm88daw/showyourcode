@@ -88,9 +88,11 @@ export default function GestionAlumnos() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-app-border">
-                {['Nombre','Email','Grupo','Aciertos','Acciones'].map((h) => (
-                  <th key={h} className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3">{h}</th>
-                ))}
+                <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3">Nombre</th>
+                <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3">Email</th>
+                <th className="text-center text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3 w-28">Grupo</th>
+                <th className="text-center text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3 w-36">Aciertos</th>
+                <th className="text-center text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3 w-40">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -98,14 +100,14 @@ export default function GestionAlumnos() {
                 <tr key={a.user_id} className="border-b border-app-border/50 hover:bg-white/[0.02]">
                   <td className="px-4 py-3 text-white text-sm font-medium">{a.nombre}</td>
                   <td className="px-4 py-3 text-gray-400 text-sm">{a.email}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-center">
                     {a.grupo ? <span className="text-xs bg-app-blue/20 text-app-blue px-2 py-0.5 rounded-full">{a.grupo}</span> : <span className="text-gray-600">—</span>}
                   </td>
-                  <td className="px-4 py-3 text-gray-400 text-sm">{a.correctas_total ?? 0} / {a.intentos_total ?? 0} tests</td>
+                  <td className="px-4 py-3 text-gray-400 text-sm text-center">{a.correctas_total ?? 0} / {a.intentos_total ?? 0} tests</td>
                   <td className="px-4 py-3">
-                    <div className="flex gap-2">
-                      <Button variant="ghost" className="text-xs px-2 py-1" onClick={() => abrirEdicion(a)}>Editar</Button>
-                      <Button variant="danger" className="text-xs px-2 py-1" onClick={() => handleEliminar(a)}>Eliminar</Button>
+                    <div className="flex justify-center gap-2">
+                      <Button variant="secondary" className="text-xs px-3 py-1.5" onClick={() => abrirEdicion(a)}>Editar</Button>
+                      <Button variant="danger" className="text-xs px-3 py-1.5" onClick={() => handleEliminar(a)}>Eliminar</Button>
                     </div>
                   </td>
                 </tr>
