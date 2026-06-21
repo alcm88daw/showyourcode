@@ -1,4 +1,4 @@
-# TestsApp
+# ShowYourCode
 
 Aplicación de tests educativos con roles profesor/alumno, desplegada en AWS con SAM.
 
@@ -15,7 +15,7 @@ Aplicación de tests educativos con roles profesor/alumno, desplegada en AWS con
 ## Estructura
 
 ```
-testsapp/
+showyourcode/
 ├── frontend/        # React app
 ├── backend/         # Lambdas por dominio
 └── template.yaml    # Infraestructura SAM
