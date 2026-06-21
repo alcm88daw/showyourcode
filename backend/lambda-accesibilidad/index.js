@@ -2,7 +2,8 @@ const { PollyClient, SynthesizeSpeechCommand } = require('@aws-sdk/client-polly'
 const { TranslateClient, TranslateTextCommand } = require('@aws-sdk/client-translate')
 
 const polly = new PollyClient()
-const translate = new TranslateClient()
+// Translate no está disponible en eu-south-2
+const translate = new TranslateClient({ region: 'eu-west-1' })
 
 const response = (statusCode, body) => ({
   statusCode,

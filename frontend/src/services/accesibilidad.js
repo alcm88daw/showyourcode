@@ -48,4 +48,8 @@ export const IDIOMAS = [
   { codigo: 'de', label: 'Deutsch',    pollyIdioma: 'de-DE', pollyVoz: 'Marlene' },
   { codigo: 'pt', label: 'Português',  pollyIdioma: 'pt-PT', pollyVoz: 'Ines'    },
   { codigo: 'ca', label: 'Català',     pollyIdioma: 'ca-ES', pollyVoz: 'Arlet'   },
+  { codigo: 'ar', label: 'العربية',    pollyIdioma: 'arb',   pollyVoz: 'Zeina'   },
+  { codigo: 'ru', label: 'Русский',    pollyIdioma: 'ru-RU', pollyVoz: 'Tatyana' },
+  { codigo: 'ro', label: 'Română',     pollyIdioma: 'ro-RO', pollyVoz: 'Carmen'  },
+  { codigo: 'zh', label: '中文',        pollyIdioma: 'cmn-CN', pollyVoz: 'Zhiyu'  },
 ]

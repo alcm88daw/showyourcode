@@ -42,7 +42,7 @@ export default function Test() {
         return { ...p, enunciado, opciones: ops }
       }))
       setTextos(t)
-    } catch { setTextos(preguntas); setIdioma('es') }
+    } catch (err) { setTextos(preguntas); setError(`Error al traducir: ${err.message}`) }
     finally { setTraduciendo(false) }
   }
 
