@@ -11,6 +11,41 @@ const response = (statusCode, body) => ({
   body: JSON.stringify(body),
 })
 
+// Traduce un texto con reintentos ante throttling; si falla, devuelve el original
+async function traducirUno(texto, origen, destino, intentos = 3) {
+  if (!texto || !texto.trim()) return texto
+  for (let i = 0; i < intentos; i++) {
+    try {
+      const { TranslatedText } = await translate.send(new TranslateTextCommand({
+        Text: texto, SourceLanguageCode: origen, TargetLanguageCode: destino,
+      }))
+      return TranslatedText
+    } catch (err) {
+      if (err.name === 'ThrottlingException' && i < intentos - 1) {
+        await new Promise((r) => setTimeout(r, 200 * (i + 1)))
+        continue
+      }
+      console.error('Error traduciendo:', texto.slice(0, 50), err.name)
+      return texto
+    }
+  }
+  return texto
+}
+
+// Ejecuta fn sobre items con un máximo de `limite` en paralelo, preservando el orden
+async function mapLimit(items, limite, fn) {
+  const resultados = new Array(items.length)
+  let idx = 0
+  const worker = async () => {
+    while (idx < items.length) {
+      const i = idx++
+      resultados[i] = await fn(items[i], i)
+    }
+  }
+  await Promise.all(Array.from({ length: Math.min(limite, items.length) }, worker))
+  return resultados
+}
+
 exports.handler = async (event) => {
   const path = event.path
   const body = JSON.parse(event.body || '{}')
@@ -29,13 +64,17 @@ exports.handler = async (event) => {
     }
 
     if (path.endsWith('/traducir')) {
-      const { texto, idiomaOrigen = 'es', idiomaDestino } = body
-      const { TranslatedText } = await translate.send(new TranslateTextCommand({
-        Text: texto,
-        SourceLanguageCode: idiomaOrigen,
-        TargetLanguageCode: idiomaDestino,
-      }))
-      return response(200, { traduccion: TranslatedText })
+      const { texto, textos, idiomaOrigen = 'es', idiomaDestino } = body
+
+      // Modo batch: traduce un array de textos en una sola petición
+      if (Array.isArray(textos)) {
+        const traducciones = await mapLimit(textos, 5, (t) => traducirUno(t, idiomaOrigen, idiomaDestino))
+        return response(200, { traducciones })
+      }
+
+      // Modo individual (compatibilidad)
+      const traduccion = await traducirUno(texto, idiomaOrigen, idiomaDestino)
+      return response(200, { traduccion })
     }
 
     return response(404, { message: 'Ruta no encontrada' })

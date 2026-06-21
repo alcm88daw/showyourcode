@@ -10,14 +10,15 @@ const authHeaders = async () => {
   }
 }
 
-export const traducirTexto = async (texto, idiomaDestino) => {
+export const traducirTextos = async (textos, idiomaDestino) => {
   const res = await fetch(`${API}/accesibilidad/traducir`, {
     method: 'POST',
     headers: await authHeaders(),
-    body: JSON.stringify({ texto, idiomaDestino }),
+    body: JSON.stringify({ textos, idiomaDestino }),
   })
+  if (!res.ok) throw new Error(`HTTP ${res.status}`)
   const data = await res.json()
-  return data.traduccion ?? texto
+  return data.traducciones ?? textos
 }
 
 export const leerTexto = async (texto, idioma = 'es-ES', voz = 'Lucia') => {
