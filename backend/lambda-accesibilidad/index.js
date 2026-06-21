@@ -53,13 +53,19 @@ exports.handler = async (event) => {
   try {
     if (path.endsWith('/tts')) {
       const { texto, idioma = 'es-ES', voz = 'Lucia' } = body
-      const { AudioStream } = await polly.send(new SynthesizeSpeechCommand({
-        Text: texto,
-        LanguageCode: idioma,
-        VoiceId: voz,
-        OutputFormat: 'mp3',
+      // Cada voz soporta un motor distinto (Arlet=neural, Tatyana=standard...).
+      // Probamos neural y, si la voz no lo admite, caemos a standard.
+      const sintetizar = (engine) => polly.send(new SynthesizeSpeechCommand({
+        Text: texto, LanguageCode: idioma, VoiceId: voz, OutputFormat: 'mp3', Engine: engine,
       }))
-      const audioBase64 = Buffer.from(await AudioStream.transformToByteArray()).toString('base64')
+      let res
+      try {
+        res = await sintetizar('neural')
+      } catch (err) {
+        if (err.name !== 'ValidationException') throw err
+        res = await sintetizar('standard')
+      }
+      const audioBase64 = Buffer.from(await res.AudioStream.transformToByteArray()).toString('base64')
       return response(200, { audio: audioBase64, formato: 'mp3' })
     }
 
