@@ -43,11 +43,12 @@ exports.handler = async (event) => {
       await db.send(new UpdateCommand({
         TableName: USUARIOS_TABLE,
         Key: { user_id: alumno_id },
-        UpdateExpression: 'ADD correctas_total :c, intentos_total :i SET nombre = if_not_exists(nombre, :n), email = if_not_exists(email, :e), rol = if_not_exists(rol, :r)',
+        UpdateExpression: 'ADD correctas_total :c, intentos_total :i, suma_notas :n SET nombre = if_not_exists(nombre, :nom), email = if_not_exists(email, :e), rol = if_not_exists(rol, :r)',
         ExpressionAttributeValues: {
           ':c': correctas,
           ':i': 1,
-          ':n': claims.name || claims.email || alumno_id,
+          ':n': nota ?? 0,
+          ':nom': claims.name || claims.email || alumno_id,
           ':e': claims.email || '',
           ':r': 'alumno',
         },
