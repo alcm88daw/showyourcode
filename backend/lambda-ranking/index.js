@@ -40,8 +40,8 @@ exports.handler = async (event) => {
         grupo: u.grupo || '',
         correctas_total: u.correctas_total ?? 0,
         intentos_total: u.intentos_total ?? 0,
-        media: u.intentos_total > 0
-          ? Math.round((u.correctas_total / u.intentos_total) * 10 * 100) / 100
+        media: u.intentos_total > 0 && u.suma_notas != null
+          ? Math.round((u.suma_notas / u.intentos_total) * 100) / 100
           : 0,
       }))
       .sort((a, b) => b.correctas_total - a.correctas_total)

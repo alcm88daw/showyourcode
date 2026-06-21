@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { getPreguntas } from '../../services/preguntas'
 import { saveResultado } from '../../services/resultados'
-import { traducirTexto, leerTexto, reproducirAudio, IDIOMAS } from '../../services/accesibilidad'
+import { traducirTextos, leerTexto, reproducirAudio, IDIOMAS } from '../../services/accesibilidad'
 import Button from '../../components/common/Button'
 import Spinner from '../../components/common/Spinner'
 import { Select } from '../../components/common/Input'
@@ -21,6 +21,7 @@ export default function Test() {
   const [traduciendo, setTraduciendo] = useState(false)
   const [reproduciendo, setReproduciendo] = useState(null)
   const audioRef = useRef(null)
+  const idiomaReqRef = useRef(0)
 
   useEffect(() => {
     getPreguntas(utId)
@@ -31,27 +32,36 @@ export default function Test() {
 
   const handleIdioma = async (cod) => {
     setIdioma(cod)
-    if (cod === 'es') { setTextos(preguntas); return }
-    setTraduciendo(true)
+    if (cod === 'es') { setTextos(preguntas); setError(''); return }
+    const reqId = ++idiomaReqRef.current
+    setTraduciendo(true); setError('')
     try {
-      const t = await Promise.all(preguntas.map(async (p) => {
-        const [enunciado, ...ops] = await Promise.all([
-          traducirTexto(p.enunciado, cod),
-          ...p.opciones.map((op) => traducirTexto(op.texto, cod).then((t) => ({ ...op, texto: t }))),
-        ])
-        return { ...p, enunciado, opciones: ops }
+      // Aplanar todos los textos (enunciado + opciones) en una sola petición batch
+      const planos = preguntas.flatMap((p) => [p.enunciado, ...p.opciones.map((op) => op.texto)])
+      const traducidos = await traducirTextos(planos, cod)
+      // Descartar el resultado si entre tanto se ha elegido otro idioma
+      if (reqId !== idiomaReqRef.current) return
+      let i = 0
+      const t = preguntas.map((p) => ({
+        ...p,
+        enunciado: traducidos[i++],
+        opciones: p.opciones.map((op) => ({ ...op, texto: traducidos[i++] })),
       }))
       setTextos(t)
-    } catch { setTextos(preguntas); setIdioma('es') }
-    finally { setTraduciendo(false) }
+    } catch (err) {
+      if (reqId !== idiomaReqRef.current) return
+      setTextos(preguntas); setIdioma('es'); setError(`Error al traducir: ${err.message}`)
+    } finally {
+      if (reqId === idiomaReqRef.current) setTraduciendo(false)
+    }
   }
 
-  const handleLeer = async (id) => {
-    if (audioRef.current) { audioRef.current.pause(); if (reproduciendo === id) { setReproduciendo(null); return } }
-    const p = textos.find((q) => q.pregunta_id === id); if (!p) return
+  const handleLeer = async (key, texto) => {
+    if (audioRef.current) { audioRef.current.pause(); if (reproduciendo === key) { setReproduciendo(null); return } }
+    if (!texto) return
     const cfg = IDIOMAS.find((i) => i.codigo === idioma) ?? IDIOMAS[0]
-    setReproduciendo(id)
-    try { const audio = reproducirAudio(await leerTexto(p.enunciado, cfg.pollyIdioma, cfg.pollyVoz)); audioRef.current = audio; audio.addEventListener('ended', () => setReproduciendo(null)) }
+    setReproduciendo(key)
+    try { const audio = reproducirAudio(await leerTexto(texto, cfg.pollyIdioma, cfg.pollyVoz)); audioRef.current = audio; audio.addEventListener('ended', () => setReproduciendo(null)) }
     catch { setReproduciendo(null) }
   }
 
@@ -127,25 +137,30 @@ export default function Test() {
                 <div className="flex items-start gap-3 mb-4">
                   <span className="shrink-0 w-7 h-7 rounded-full bg-app-surface border border-app-border flex items-center justify-center text-xs text-gray-400 mt-0.5">{i + 1}</span>
                   <p className="text-white font-medium text-base leading-relaxed flex-1">{p.enunciado}</p>
-                  <button onClick={() => handleLeer(p.pregunta_id)} className="shrink-0 text-gray-400 hover:text-white transition-colors text-lg mt-0.5" title={reproduciendo === p.pregunta_id ? 'Detener' : 'Leer en voz alta'}>
+                  <button onClick={() => handleLeer(p.pregunta_id, p.enunciado)} className="shrink-0 text-gray-400 hover:text-white transition-colors text-lg mt-0.5" title={reproduciendo === p.pregunta_id ? 'Detener' : 'Leer en voz alta'}>
                     {reproduciendo === p.pregunta_id ? '⏹' : '🔊'}
                   </button>
                 </div>
                 <div className="flex flex-col gap-2 ml-10">
                   {p.opciones.map((op) => {
                     const sel = respuestas[p.pregunta_id] === op.id
+                    const leerKey = `${p.pregunta_id}:${op.id}`
                     return (
-                      <button
-                        key={op.id}
-                        onClick={() => setRespuestas((prev) => ({ ...prev, [p.pregunta_id]: op.id }))}
-                        className={`w-full text-left px-4 py-3 rounded-xl border text-sm transition-all ${
-                          sel
-                            ? 'border-app-blue bg-app-blue/15 text-white font-medium'
-                            : 'border-app-border bg-app-surface text-gray-300 hover:border-app-blue/50 hover:bg-app-blue/5'
-                        }`}
-                      >
-                        <span className="font-bold text-gray-400 mr-2">{op.id.toUpperCase()})</span>{op.texto}
-                      </button>
+                      <div key={op.id} className="flex items-stretch gap-2">
+                        <button
+                          onClick={() => setRespuestas((prev) => ({ ...prev, [p.pregunta_id]: op.id }))}
+                          className={`flex-1 text-left px-4 py-3 rounded-xl border text-sm transition-all ${
+                            sel
+                              ? 'border-app-blue bg-app-blue/15 text-white font-medium'
+                              : 'border-app-border bg-app-surface text-gray-300 hover:border-app-blue/50 hover:bg-app-blue/5'
+                          }`}
+                        >
+                          <span className="font-bold text-gray-400 mr-2">{op.id.toUpperCase()})</span>{op.texto}
+                        </button>
+                        <button onClick={() => handleLeer(leerKey, op.texto)} className="shrink-0 px-3 rounded-xl border border-app-border bg-app-surface text-gray-400 hover:text-white transition-colors" title={reproduciendo === leerKey ? 'Detener' : 'Leer en voz alta'}>
+                          {reproduciendo === leerKey ? '⏹' : '🔊'}
+                        </button>
+                      </div>
                     )
                   })}
                 </div>

@@ -128,6 +128,17 @@ Resources:
           CognitoAuth:
             UserPoolArn: !GetAtt UserPool.Arn
         AddDefaultAuthorizerToCorsPreflight: false
+      GatewayResponses:
+        DEFAULT_4XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization'"
+        DEFAULT_5XX:
+          ResponseParameters:
+            Headers:
+              Access-Control-Allow-Origin: "'*'"
+              Access-Control-Allow-Headers: "'Content-Type,Authorization'"
 
   # ─── Lambda: Auth (Cognito trigger) ──────────────────────────────────────────
   AuthFunction:

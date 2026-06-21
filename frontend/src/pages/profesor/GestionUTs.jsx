@@ -103,30 +103,32 @@ export default function GestionUTs() {
           <table className="w-full">
             <thead>
               <tr className="border-b border-app-border">
-                {['Ord.','Título','Reintentos','Estado','Acciones'].map((h) => (
-                  <th key={h} className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3">{h}</th>
-                ))}
+                <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3 w-16">Ord.</th>
+                <th className="text-left text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3">Título</th>
+                <th className="text-center text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3 w-28">Reintentos</th>
+                <th className="text-center text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3 w-28">Estado</th>
+                <th className="text-center text-xs font-medium text-gray-400 uppercase tracking-wider px-4 py-3 w-52">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {[...uts].sort((a, b) => a.orden - b.orden).map((ut) => (
                 <tr key={ut.ut_id} className="border-b border-app-border/50 hover:bg-white/[0.02] transition-colors">
-                  <td className="px-4 py-3 text-gray-400 text-sm">{ut.orden}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-gray-400 text-sm text-left">{ut.orden}</td>
+                  <td className="px-4 py-3 text-left">
                     <p className="text-white font-medium text-sm">{ut.titulo}</p>
                     {ut.descripcion && <p className="text-gray-500 text-xs mt-0.5 line-clamp-1">{ut.descripcion}</p>}
                   </td>
-                  <td className="px-4 py-3 text-gray-400 text-sm">{ut.reintentos_permitidos}</td>
-                  <td className="px-4 py-3">
+                  <td className="px-4 py-3 text-gray-400 text-sm text-center">{ut.reintentos_permitidos}</td>
+                  <td className="px-4 py-3 text-center">
                     <button onClick={() => handleToggle(ut)} title="Cambiar estado">
                       <Badge variant={ut.activa ? 'active' : 'inactive'}>{ut.activa ? 'Activa' : 'Inactiva'}</Badge>
                     </button>
                   </td>
                   <td className="px-4 py-3">
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" className="text-xs px-2 py-1" onClick={() => navigate(`/profesor/uts/${ut.ut_id}/preguntas`)}>Preguntas</Button>
-                      <Button variant="ghost" className="text-xs px-2 py-1" onClick={() => abrirEdicion(ut)}>Editar</Button>
-                      <Button variant="danger" className="text-xs px-2 py-1" onClick={() => handleEliminar(ut.ut_id)}>Eliminar</Button>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button variant="primary" className="text-xs px-3 py-1.5" onClick={() => navigate(`/profesor/uts/${ut.ut_id}/preguntas`)}>Preguntas</Button>
+                      <Button variant="secondary" className="text-xs px-3 py-1.5" onClick={() => abrirEdicion(ut)}>Editar</Button>
+                      <Button variant="danger" className="text-xs px-3 py-1.5" onClick={() => handleEliminar(ut.ut_id)}>Eliminar</Button>
                     </div>
                   </td>
                 </tr>
