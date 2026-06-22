@@ -34,6 +34,10 @@ export const updatePregunta = async (id, data) => {
   return res.json()
 }
 
-export const deletePregunta = async (id) => {
-  await fetch(`${API}/preguntas/${id}`, { method: 'DELETE', headers: await authHeaders() })
+export const deletePregunta = async (id, data) => {
+  await fetch(`${API}/preguntas/${id}`, {
+    method: 'DELETE',
+    headers: await authHeaders(),
+    body: JSON.stringify(data),
+  })
 }
