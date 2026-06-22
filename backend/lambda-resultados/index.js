@@ -62,8 +62,12 @@ exports.handler = async (event) => {
       const role = event.requestContext?.authorizer?.claims?.['custom:role']
 
       if (role === 'profesor') {
-        const { Items } = await db.send(new ScanCommand({ TableName: RESULTADOS_TABLE }))
-        return response(200, Items)
+        const [{ Items: resultados }, { Items: usuarios }] = await Promise.all([
+          db.send(new ScanCommand({ TableName: RESULTADOS_TABLE })),
+          db.send(new ScanCommand({ TableName: USUARIOS_TABLE })),
+        ])
+        const nombres = Object.fromEntries(usuarios.map((u) => [u.user_id, u.nombre || u.email || u.user_id]))
+        return response(200, resultados.map((r) => ({ ...r, alumno_nombre: nombres[r.alumno_id] ?? r.alumno_id })))
       }
 
       const { Items } = await db.send(new QueryCommand({
