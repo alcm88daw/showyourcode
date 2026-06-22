@@ -44,7 +44,7 @@ exports.handler = async (event) => {
           ? Math.round((u.suma_notas / u.intentos_total) * 100) / 100
           : 0,
       }))
-      .sort((a, b) => b.correctas_total - a.correctas_total)
+      .sort((a, b) => b.media - a.media)
 
     return response(200, ranking)
   } catch (err) {
