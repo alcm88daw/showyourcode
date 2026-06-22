@@ -1,12 +1,13 @@
 const { CognitoIdentityProviderClient, AdminCreateUserCommand, AdminDeleteUserCommand, AdminUpdateUserAttributesCommand } = require('@aws-sdk/client-cognito-identity-provider')
 const { DynamoDBClient } = require('@aws-sdk/client-dynamodb')
-const { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand } = require('@aws-sdk/lib-dynamodb')
+const { DynamoDBDocumentClient, ScanCommand, GetCommand, PutCommand, UpdateCommand, DeleteCommand, QueryCommand } = require('@aws-sdk/lib-dynamodb')
 
 const cognito = new CognitoIdentityProviderClient()
 const db = DynamoDBDocumentClient.from(new DynamoDBClient())
 
 const USER_POOL_ID = process.env.USER_POOL_ID
 const USUARIOS_TABLE = process.env.USUARIOS_TABLE
+const RESULTADOS_TABLE = process.env.RESULTADOS_TABLE
 
 const response = (statusCode, body) => ({
   statusCode,
@@ -89,6 +90,21 @@ exports.handler = async (event) => {
           UserPoolId: USER_POOL_ID,
           Username: usuario.email,
         }))
+      }
+
+      // Borrado en cascada: eliminar todos los resultados del alumno
+      if (RESULTADOS_TABLE) {
+        const { Items: resultados } = await db.send(new QueryCommand({
+          TableName: RESULTADOS_TABLE,
+          KeyConditionExpression: 'alumno_id = :id',
+          ExpressionAttributeValues: { ':id': id },
+        }))
+        await Promise.all((resultados ?? []).map((r) =>
+          db.send(new DeleteCommand({
+            TableName: RESULTADOS_TABLE,
+            Key: { alumno_id: r.alumno_id, ut_id_timestamp: r.ut_id_timestamp },
+          }))
+        ))
       }
 
       await db.send(new DeleteCommand({ TableName: USUARIOS_TABLE, Key: { user_id: id } }))
