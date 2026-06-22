@@ -294,9 +294,12 @@ Resources:
         Variables:
           USER_POOL_ID: !Ref UserPool
           USUARIOS_TABLE: !Ref UsuariosTable
+          RESULTADOS_TABLE: !Ref ResultadosTable
       Policies:
         - DynamoDBCrudPolicy:
             TableName: !Ref UsuariosTable
+        - DynamoDBCrudPolicy:
+            TableName: !Ref ResultadosTable
         - Statement:
             - Effect: Allow
               Action:
