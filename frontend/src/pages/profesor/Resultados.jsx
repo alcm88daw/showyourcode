@@ -53,8 +53,8 @@ export default function Resultados() {
   ).map(([titulo, { suma, count }]) => ({ titulo, media: count ? suma / count : 0, count }))
 
   const exportarCSV = () => {
-    const csv = ['alumno_id,ut,nota,correctas,total,fecha',
-      ...filtrados.map((r) => `${r.alumno_id},${uts[r.ut_id] ?? r.ut_id},${r.nota ?? ''},${r.correctas ?? ''},${r.total ?? ''},${r.fecha}`)
+    const csv = ['alumno;ut;nota;correctas;total;fecha',
+      ...filtrados.map((r) => `${r.alumno_nombre ?? r.alumno_id};${uts[r.ut_id] ?? r.ut_id};${r.nota ?? ''};${r.correctas ?? ''};${r.total ?? ''};${r.fecha}`)
     ].join('\n')
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
@@ -106,7 +106,7 @@ export default function Resultados() {
             <tbody>
               {[...filtrados].sort((a, b) => new Date(b.fecha) - new Date(a.fecha)).map((r) => (
                 <tr key={`${r.alumno_id}-${r.ut_id_timestamp}`} className="border-b border-app-border/50 hover:bg-white/[0.02]">
-                  <td className="px-4 py-3 text-gray-400 text-xs font-mono">{r.alumno_id.slice(0, 8)}…</td>
+                  <td className="px-4 py-3 text-gray-400 text-sm">{r.alumno_nombre ?? r.alumno_id.slice(0, 8) + '…'}</td>
                   <td className="px-4 py-3 text-white text-sm">{uts[r.ut_id] ?? r.ut_id}</td>
                   <td className="px-4 py-3">
                     <span className={`text-sm font-bold ${r.nota >= 5 ? 'text-app-green' : 'text-red-400'}`}>
